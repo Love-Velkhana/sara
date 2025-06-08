@@ -1,0 +1,52 @@
+use super::*;
+use crate::data::level::*;
+use crate::utils::aseprite::*;
+use avian2d::prelude::*;
+use bevy::prelude::*;
+
+#[derive(Component)]
+struct PassBoxMarker;
+
+#[derive(Bundle)]
+pub struct PassBox(
+    Aseprite,
+    Collider,
+    Sensor,
+    CollisionEventsEnabled,
+    Transform,
+    CollisionLayers,
+    PassBoxMarker,
+);
+impl PassBox {
+    const FRAME_START_INDEX: usize = 0;
+    const FRAME_LAST_INDEX: usize = 4;
+}
+impl Tile for PassBox {
+    type Output = Self;
+    fn new(translation: Vec3, level_resource: &Res<LevelResource>) -> Self::Output {
+        Self(
+            Aseprite::new(
+                Sprite {
+                    image: level_resource.texture_handle.clone(),
+                    texture_atlas: Some(TextureAtlas {
+                        layout: level_resource.layout_handle.clone(),
+                        index: Self::FRAME_START_INDEX,
+                    }),
+                    ..Default::default()
+                },
+                AsepriteIndices::new(Self::FRAME_START_INDEX, Self::FRAME_LAST_INDEX),
+                AsepritePlaying(true),
+                AsepriteTimer(Timer::from_seconds(0.15, TimerMode::Repeating)),
+            ),
+            Collider::rectangle(
+                LevelResource::TILE_COLLIFDER_SIZE.x,
+                LevelResource::TILE_COLLIFDER_SIZE.y,
+            ),
+            Sensor,
+            CollisionEventsEnabled,
+            Transform::from_translation(translation),
+            CollisionLayers::new(GameCollisionLayers::Operation, GameCollisionLayers::Player),
+            PassBoxMarker,
+        )
+    }
+}
