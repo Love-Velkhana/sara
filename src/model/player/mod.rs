@@ -65,24 +65,16 @@ pub struct Player(
     LockedAxes,
     Friction,
     Restitution,
-    ShapeCaster,
     LinearVelocity,
     CollisionLayers,
     PlayerMarker,
 );
 
-type GroundQuery<'a, 'b> = Single<'a, (&'b ShapeHits, &'b Rotation), With<PlayerMarker>>;
-
 impl Player {
     const PLAYER_SIZE: (f32, f32) = (32.0, 32.0);
-    const PLAYER_HURT_BOX_SIZE: (f32, f32) = (10.0, 14.0);
-    const PLAYER_MAX_DISTANCE: f32 = 0.8;
+    const PLAYER_COLLIDER_SIZE: (f32, f32) = (10.0, 14.0);
 
     fn new(transition: Vec3) -> Self {
-        let collider =
-            Collider::capsule(Self::PLAYER_HURT_BOX_SIZE.0, Self::PLAYER_HURT_BOX_SIZE.1);
-        let mut scale_collider = collider.clone();
-        scale_collider.set_scale(Vec2::ONE * 0.99, 1);
         Self(
             Camera2d,
             Aseprite::default()
@@ -91,13 +83,11 @@ impl Player {
             HP::default(),
             Transform::from_translation(transition),
             RigidBody::Dynamic,
-            collider,
+            Collider::capsule(Self::PLAYER_COLLIDER_SIZE.0, Self::PLAYER_COLLIDER_SIZE.1),
             CollisionEventsEnabled,
             LockedAxes::ROTATION_LOCKED,
             Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
-            ShapeCaster::new(scale_collider, Vec2::ZERO, 0.0, Dir2::NEG_Y)
-                .with_max_distance(Self::PLAYER_MAX_DISTANCE),
             LinearVelocity(Vec2::new(0.0, 0.0)),
             CollisionLayers::new(
                 GameCollisionLayers::Player,
@@ -109,5 +99,110 @@ impl Player {
             ),
             PlayerMarker,
         )
+    }
+}
+
+#[derive(Component)]
+struct FloorChecker1;
+
+#[derive(Component)]
+struct FloorChecker2;
+
+type GroundQuery<'a, 'b, 'c> =
+    Query<'a, 'b, &'c RayHits, Or<(With<FloorChecker1>, With<FloorChecker2>)>>;
+
+#[derive(Component)]
+struct FrontChecker1;
+
+#[derive(Component)]
+struct FrontChecker2;
+
+type FrontWallQuery<'a, 'b, 'c> =
+    Query<'a, 'b, &'c RayHits, Or<(With<FrontChecker1>, With<FrontChecker2>)>>;
+
+#[derive(Component)]
+struct BackChecker1;
+
+#[derive(Component)]
+struct BackChecker2;
+
+type BackWallQuery<'a, 'b, 'c> =
+    Query<'a, 'b, &'c RayHits, Or<(With<BackChecker1>, With<BackChecker2>)>>;
+
+struct PlayerCheckers;
+impl PlayerCheckers {
+    const CHECKER_X: f32 = (Player::PLAYER_COLLIDER_SIZE.0 - 0.8) / 2.0;
+    const FLOOR_CHECKER_Y: f32 = -(Player::PLAYER_SIZE.1 - 0.5) / 2.0;
+    const FLOOR_CHECKER_MAX_DISTANCE: f32 = 16.0;
+    const WALL_CHECKER_Y: f32 = (-Player::PLAYER_SIZE.1 - 1.6) / 2.0;
+    const WALL_CHECKER_MAX_DISTANCE: f32 = 6.0;
+
+    fn add_to(command: &mut ChildSpawnerCommands) {
+        command.spawn((
+            RayCaster::new(
+                Vec2::new(Self::CHECKER_X, Self::FLOOR_CHECKER_Y),
+                Dir2::NEG_Y,
+            )
+            .with_max_hits(1)
+            .with_max_distance(Self::FLOOR_CHECKER_MAX_DISTANCE)
+            .with_query_filter(
+                SpatialQueryFilter::default().with_mask(GameCollisionLayers::Enviroment),
+            ),
+            FloorChecker1,
+        ));
+        command.spawn((
+            RayCaster::new(
+                Vec2::new(-Self::CHECKER_X, Self::FLOOR_CHECKER_Y),
+                Dir2::NEG_Y,
+            )
+            .with_max_hits(1)
+            .with_max_distance(Self::FLOOR_CHECKER_MAX_DISTANCE)
+            .with_query_filter(
+                SpatialQueryFilter::default().with_mask(GameCollisionLayers::Enviroment),
+            ),
+            FloorChecker2,
+        ));
+        command.spawn((
+            RayCaster::new(Vec2::new(Self::CHECKER_X, Self::WALL_CHECKER_Y), Dir2::X)
+                .with_max_hits(1)
+                .with_max_distance(Self::WALL_CHECKER_MAX_DISTANCE)
+                .with_query_filter(
+                    SpatialQueryFilter::default().with_mask(GameCollisionLayers::Enviroment),
+                ),
+            FrontChecker1,
+        ));
+        command.spawn((
+            RayCaster::new(Vec2::new(Self::CHECKER_X, -Self::WALL_CHECKER_Y), Dir2::X)
+                .with_max_hits(1)
+                .with_max_distance(Self::WALL_CHECKER_MAX_DISTANCE)
+                .with_query_filter(
+                    SpatialQueryFilter::default().with_mask(GameCollisionLayers::Enviroment),
+                ),
+            FrontChecker2,
+        ));
+        command.spawn((
+            RayCaster::new(
+                Vec2::new(-Self::CHECKER_X, Self::WALL_CHECKER_Y),
+                Dir2::NEG_X,
+            )
+            .with_max_hits(1)
+            .with_max_distance(Self::WALL_CHECKER_MAX_DISTANCE)
+            .with_query_filter(
+                SpatialQueryFilter::default().with_mask(GameCollisionLayers::Enviroment),
+            ),
+            BackChecker1,
+        ));
+        command.spawn((
+            RayCaster::new(
+                Vec2::new(-Self::CHECKER_X, -Self::WALL_CHECKER_Y),
+                Dir2::NEG_X,
+            )
+            .with_max_hits(1)
+            .with_max_distance(Self::WALL_CHECKER_MAX_DISTANCE)
+            .with_query_filter(
+                SpatialQueryFilter::default().with_mask(GameCollisionLayers::Enviroment),
+            ),
+            BackChecker2,
+        ));
     }
 }

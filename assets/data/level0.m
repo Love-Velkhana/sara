@@ -2,7 +2,7 @@
     "rows":10,
     "cols":10,
     "data":["Wall","Wall","Wall","Wall","Wall","Wall","Wall","Wall","Wall","Wall",
-            "Wall","Space","Space","Space","Space","Space","Hit","Space","Pass","Wall",
+            "Wall","Space","Space","Space","Space","Space","Space","Space","Space","Wall",
             "Wall","Space","Space","Space","Space","Space","Space","Space","Space","Wall",
             "Wall","Space","Wall","Wall","Space","Space","Space","Space","Space","Wall",
             "Wall","Space","Space","Space","Space","Space","Space","Space","Space","Wall",

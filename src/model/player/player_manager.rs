@@ -5,7 +5,6 @@ pub struct PlayerManager;
 impl PlayerManager {
     const VELOCITY_SPEED: f32 = 120.0;
     const JUMP_SPEED: f32 = 233.0;
-    const MAX_ANGLE: f32 = 3.14 * 0.25;
 
     fn init(
         mut meshes: ResMut<Assets<Mesh>>,
@@ -16,7 +15,7 @@ impl PlayerManager {
         mut next_state: ResMut<NextState<PlayerState>>,
     ) {
         let shadow = Shadow::new(
-            meshes.add(Capsule2d::new(100.0 * 0.99, 14.0 * 0.99)),
+            meshes.add(Capsule2d::new(10.0, 14.0)),
             materials.add(Color::srgba_u8(0, 0, 0, 120)),
         );
         let player = Player::new(
@@ -24,11 +23,12 @@ impl PlayerManager {
                 .get(&level_resource.data_handle)
                 .unwrap()
                 .entry
-                .extend(1.0),
+                .extend(2.0),
         );
         command
             .spawn((player, StateScoped(PlayerState::Running)))
             .with_child(shadow)
+            .with_children(PlayerCheckers::add_to)
             .observe(Self::hurt);
         next_state.set(PlayerState::Running);
     }
@@ -53,6 +53,8 @@ impl PlayerManager {
     fn handle_input(
         state: Res<State<PlayerRunningState>>,
         input: Res<ButtonInput<KeyCode>>,
+        front_wall_query: FrontWallQuery,
+        back_wall_query: BackWallQuery,
         mut sprite: Single<&mut Sprite, With<PlayerMarker>>,
         mut next_state: ResMut<NextState<PlayerRunningState>>,
         mut player_linear_velocity_query: PlayerLinearVelocityQuery,
@@ -64,12 +66,16 @@ impl PlayerManager {
             player_linear_velocity_query.y = Self::JUMP_SPEED;
             next_state.set(PlayerRunningState::Jump);
         }
-        if input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) {
+        if input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft])
+            && back_wall_query.iter().all(|hits| hits.is_empty())
+        {
             sprite.flip_x = false;
             player_linear_velocity_query.x = -Self::VELOCITY_SPEED;
             return;
         }
-        if input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
+        if input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight])
+            && front_wall_query.iter().all(|hits| hits.is_empty())
+        {
             sprite.flip_x = true;
             player_linear_velocity_query.x = Self::VELOCITY_SPEED;
         }
@@ -98,11 +104,7 @@ impl PlayerManager {
         mut next_state: ResMut<NextState<PlayerRunningState>>,
         mut player_linear_velocity_query: PlayerLinearVelocityQuery,
     ) {
-        if ground_query
-            .0
-            .iter()
-            .any(|hit| (ground_query.1 * -hit.normal2).angle_to(Vec2::Y).abs() <= Self::MAX_ANGLE)
-        {
+        if ground_query.iter().any(|hits| !hits.is_empty()) {
             next_state.set(PlayerRunningState::Idle);
             return;
         }
@@ -192,17 +194,29 @@ impl PlayerManager {
         player_linear_velocity_query: PlayerLinearVelocityQuery,
         mut next_state: ResMut<NextState<PlayerRunningState>>,
     ) {
-        if !ground_query
-            .0
-            .iter()
-            .any(|hit| (ground_query.1 * -hit.normal2).angle_to(Vec2::Y).abs() <= Self::MAX_ANGLE)
-        {
+        if ground_query.iter().all(|hits| hits.is_empty()) {
             next_state.set(PlayerRunningState::Fall);
             return;
         }
         if player_linear_velocity_query.x == 0.0 {
             next_state.set(PlayerRunningState::Idle);
             return;
+        }
+    }
+
+    fn render_rays(rays: Query<(&RayCaster, &RayHits)>, mut gizmos: Gizmos) {
+        for (ray, hits) in rays {
+            let origin = ray.global_origin();
+            let direction = ray.global_direction().as_vec2();
+            gizmos.line_2d(
+                origin,
+                origin + direction * ray.max_distance,
+                if hits.is_empty() {
+                    Color::srgb_u8(200, 0, 0)
+                } else {
+                    Color::srgb_u8(0, 200, 0)
+                },
+            );
         }
     }
 }
@@ -212,6 +226,10 @@ impl Plugin for PlayerManager {
             .add_sub_state::<PlayerState>()
             .add_systems(OnEnter(PlayerState::Loading), Self::init)
             .add_sub_state::<PlayerRunningState>()
+            .add_systems(
+                Update,
+                Self::render_rays.run_if(in_state(PlayerState::Running)),
+            )
             .add_systems(OnEnter(PlayerRunningState::Fall), Self::enter_fall)
             .add_systems(
                 Update,

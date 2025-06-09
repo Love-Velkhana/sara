@@ -12,6 +12,7 @@ pub struct Floor(
     RigidBody,
     Collider,
     Transform,
+    Restitution,
     CollisionLayers,
     FloorMarker,
 );
@@ -36,6 +37,7 @@ impl Tile for Floor {
                 LevelResource::TILE_COLLIFDER_SIZE.y,
             ),
             Transform::from_translation(translation),
+            Restitution::ZERO,
             CollisionLayers::new(GameCollisionLayers::Enviroment, GameCollisionLayers::Player),
             FloorMarker,
         )

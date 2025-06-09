@@ -1,1 +1,1 @@
-A game made with Bevy and Avian2D
+A game made with bevy and avian2d
