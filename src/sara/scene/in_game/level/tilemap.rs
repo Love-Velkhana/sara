@@ -1,4 +1,5 @@
 use super::{Level, LevelState};
+use crate::scene::GameScene;
 use crate::utils::prelude::*;
 use crate::{data::prelude::*, model::prelude::*};
 use avian2d::prelude::*;
@@ -70,13 +71,22 @@ impl TileMap {
         trigger: Trigger<OnCollisionStart>,
         player: Single<Entity, With<PlayerMarker>>,
         mut level_resource: ResMut<LevelResource>,
+        level_asset: Res<Assets<LevelAsset>>,
         mut next_level_state: ResMut<NextState<LevelState>>,
         mut player_state: ResMut<NextState<PlayerState>>,
+        mut next_scene: ResMut<NextState<GameScene>>,
+        mut level_event: EventWriter<LevelPass>,
     ) {
-        if *player == trigger.collider {
-            level_resource.id += 1;
+        if *player != trigger.collider {
+            return;
+        }
+        if let Some(next_id) = level_asset.get(&level_resource.data_handle).unwrap().next {
+            level_resource.id = next_id;
             next_level_state.set(LevelState::Loading);
             player_state.set(PlayerState::Prepare);
+        } else {
+            level_event.write(LevelPass(true));
+            next_scene.set(GameScene::GameOver);
         }
     }
 

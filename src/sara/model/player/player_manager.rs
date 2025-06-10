@@ -4,7 +4,7 @@ use super::*;
 pub struct PlayerManager;
 impl PlayerManager {
     const VELOCITY_SPEED: f32 = 120.0;
-    const JUMP_SPEED: f32 = 233.0;
+    const JUMP_SPEED: f32 = 250.0;
 
     fn init(
         mut meshes: ResMut<Assets<Mesh>>,
@@ -37,17 +37,20 @@ impl PlayerManager {
         trigger: Trigger<OnCollisionStart>,
         hitbox: Query<&HitBoxMarker>,
         mut hp: PlayerHPQuery,
+        //mut command: Commands,
         mut level_event: EventWriter<LevelPass>,
         mut next_scene: ResMut<NextState<GameScene>>,
     ) {
-        if hitbox.contains(trigger.collider) {
-            if hp.0 == 1 {
-                level_event.write(LevelPass(false));
-                next_scene.set(GameScene::GameOver);
-                return;
-            }
-            hp.0 -= 1;
+        if !hitbox.contains(trigger.collider) {
+            return;
         }
+        if hp.0 == 1 {
+            level_event.write(LevelPass(false));
+            next_scene.set(GameScene::GameOver);
+            return;
+        }
+        hp.0 -= 1;
+        //command.spawn(PlayerTwinkleTimer::default());
     }
 
     fn handle_input(

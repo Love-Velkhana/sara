@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
+use strum::{EnumIter, IntoEnumIterator};
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, EnumIter)]
 pub enum PlayerAsepriteType {
     Jump,
     Walk,
@@ -9,7 +10,7 @@ pub enum PlayerAsepriteType {
     Fall,
 }
 impl PlayerAsepriteType {
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
             Self::Jump => "jump",
             Self::Walk => "walk",
@@ -17,12 +18,33 @@ impl PlayerAsepriteType {
             Self::Fall => "fall",
         }
     }
-    pub fn frame_count(&self) -> usize {
+
+    pub const fn frame_count(&self) -> usize {
         match self {
             Self::Jump => 3,
             Self::Walk => 3,
             Self::Idle => 1,
             Self::Fall => 1,
+        }
+    }
+
+    pub fn layout(&self) -> TextureAtlasLayout {
+        match self {
+            Self::Jump => {
+                TextureAtlasLayout::from_grid(PlayerResource::TEXTURE_SIZE, 3, 1, None, None)
+            }
+
+            Self::Walk => {
+                TextureAtlasLayout::from_grid(PlayerResource::TEXTURE_SIZE, 3, 1, None, None)
+            }
+
+            Self::Idle => {
+                TextureAtlasLayout::from_grid(PlayerResource::TEXTURE_SIZE, 1, 1, None, None)
+            }
+
+            Self::Fall => {
+                TextureAtlasLayout::from_grid(PlayerResource::TEXTURE_SIZE, 1, 1, None, None)
+            }
         }
     }
 }
@@ -42,33 +64,14 @@ impl PlayerResource {
     }
 
     pub fn new(asset_server: &Res<AssetServer>) -> Self {
-        let param: [(PlayerAsepriteType, TextureAtlasLayout); 4] = [
-            (
-                PlayerAsepriteType::Jump,
-                TextureAtlasLayout::from_grid(Self::TEXTURE_SIZE, 3, 1, None, None),
-            ),
-            (
-                PlayerAsepriteType::Walk,
-                TextureAtlasLayout::from_grid(Self::TEXTURE_SIZE, 3, 1, None, None),
-            ),
-            (
-                PlayerAsepriteType::Idle,
-                TextureAtlasLayout::from_grid(Self::TEXTURE_SIZE, 1, 1, None, None),
-            ),
-            (
-                PlayerAsepriteType::Fall,
-                TextureAtlasLayout::from_grid(Self::TEXTURE_SIZE, 1, 1, None, None),
-            ),
-        ];
-
         let mut texture_atlas_handles = HashMap::new();
-        for aseprite_param in param {
-            let name = aseprite_param.0.name();
+        for aseprite_type in PlayerAsepriteType::iter() {
+            let name = aseprite_type.name();
             texture_atlas_handles.insert(
-                aseprite_param.0,
+                aseprite_type,
                 (
                     asset_server.load(Self::texture_path(name)),
-                    asset_server.add(aseprite_param.1),
+                    asset_server.add(aseprite_type.layout()),
                 ),
             );
         }

@@ -42,6 +42,21 @@ enum PlayerRunningState {
     Walk,
     Idle,
 }
+/*
+#[derive(Component)]
+struct PlayerTwinkleTimer(Timer);
+impl PlayerTwinkleTimer {
+    const TWINKLE_TIME: f32 = 1.0;
+}
+impl Default for PlayerTwinkleTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(Self::TWINKLE_TIME, TimerMode::Once))
+    }
+}
+
+type PlayerTwinkleTimerChangedQuery<'a, 'b> =
+    Single<'a, &'b mut PlayerTwinkleTimer, Changed<PlayerTwinkleTimer>>;
+*/
 
 #[derive(QueryData)]
 #[query_data(mutable)]
@@ -134,7 +149,7 @@ impl PlayerCheckers {
     const CHECKER_X: f32 = (Player::PLAYER_COLLIDER_SIZE.0 - 0.8) / 2.0;
     const FLOOR_CHECKER_Y: f32 = -(Player::PLAYER_SIZE.1 - 0.5) / 2.0;
     const FLOOR_CHECKER_MAX_DISTANCE: f32 = 16.0;
-    const WALL_CHECKER_Y: f32 = (-Player::PLAYER_SIZE.1 - 1.6) / 2.0;
+    const WALL_CHECKER_Y: f32 = -(Player::PLAYER_SIZE.1 - 1.6) / 2.0;
     const WALL_CHECKER_MAX_DISTANCE: f32 = 6.0;
 
     fn add_to(command: &mut ChildSpawnerCommands) {
