@@ -34,10 +34,10 @@ impl LevelResource {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TileType {
-    Space,
+    None,
     Wall,
     Pass,
-    Hit,
+    Trap,
 }
 
 #[derive(Asset, TypePath, Debug, Serialize, Deserialize)]

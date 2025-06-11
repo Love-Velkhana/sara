@@ -7,17 +7,11 @@ impl PlayerManager {
     const JUMP_SPEED: f32 = 250.0;
 
     fn init(
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<ColorMaterial>>,
         mut command: Commands,
         level_resource: Res<LevelResource>,
         level_config: Res<Assets<LevelAsset>>,
         mut next_state: ResMut<NextState<PlayerState>>,
     ) {
-        let shadow = Shadow::new(
-            meshes.add(Capsule2d::new(10.0, 14.0)),
-            materials.add(Color::srgba_u8(0, 0, 0, 120)),
-        );
         let player = Player::new(
             level_config
                 .get(&level_resource.data_handle)
@@ -27,7 +21,6 @@ impl PlayerManager {
         );
         command
             .spawn((player, StateScoped(PlayerState::Running)))
-            .with_child(shadow)
             .with_children(PlayerCheckers::add_to)
             .observe(Self::hurt);
         next_state.set(PlayerState::Running);
@@ -36,7 +29,7 @@ impl PlayerManager {
     fn hurt(
         trigger: Trigger<OnCollisionStart>,
         hitbox: Query<&HitBoxMarker>,
-        mut hp: PlayerHPQuery,
+        hp: PlayerHPQuery,
         //mut command: Commands,
         mut level_event: EventWriter<LevelPass>,
         mut next_scene: ResMut<NextState<GameScene>>,
@@ -49,7 +42,7 @@ impl PlayerManager {
             next_scene.set(GameScene::GameOver);
             return;
         }
-        hp.0 -= 1;
+        //hp.0 -= 1;
         //command.spawn(PlayerTwinkleTimer::default());
     }
 
@@ -60,7 +53,7 @@ impl PlayerManager {
         back_wall_query: BackWallQuery,
         mut sprite: Single<&mut Sprite, With<PlayerMarker>>,
         mut next_state: ResMut<NextState<PlayerRunningState>>,
-        mut player_linear_velocity_query: PlayerLinearVelocityQuery,
+        mut player_linear_velocity_query: PlayerLinearVelocityQueryMut,
     ) {
         player_linear_velocity_query.x = 0.0;
         if [PlayerRunningState::Walk, PlayerRunningState::Idle].contains(state.get())
@@ -105,7 +98,7 @@ impl PlayerManager {
         gravity: Res<Gravity>,
         ground_query: GroundQuery,
         mut next_state: ResMut<NextState<PlayerRunningState>>,
-        mut player_linear_velocity_query: PlayerLinearVelocityQuery,
+        mut player_linear_velocity_query: PlayerLinearVelocityQueryMut,
     ) {
         if ground_query.iter().any(|hits| !hits.is_empty()) {
             next_state.set(PlayerRunningState::Idle);
@@ -160,7 +153,7 @@ impl PlayerManager {
 
     fn on_jump(
         input: Res<ButtonInput<KeyCode>>,
-        mut player_linear_velocity_query: PlayerLinearVelocityQuery,
+        mut player_linear_velocity_query: PlayerLinearVelocityQueryMut,
         mut next_running_state: ResMut<NextState<PlayerRunningState>>,
     ) {
         if input.just_released(KeyCode::Space) && player_linear_velocity_query.0.y > 0.0 {

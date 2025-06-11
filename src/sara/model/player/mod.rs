@@ -19,7 +19,10 @@ pub enum PlayerState {
 
 #[derive(Component)]
 pub struct PlayerMarker;
-pub type PlayerLinearVelocityQuery<'a, 'b> = Single<'a, &'b mut LinearVelocity, With<PlayerMarker>>;
+pub type PlayerLinearVelocityQueryMut<'a, 'b> =
+    Single<'a, &'b mut LinearVelocity, With<PlayerMarker>>;
+pub type PlayerLinearVelocityQuery<'a, 'b> = Single<'a, &'b LinearVelocity, With<PlayerMarker>>;
+pub type PlayerTransformQuery<'a, 'b> = Single<'a, &'b Transform, With<PlayerMarker>>;
 
 #[derive(Component)]
 struct HP(usize);
@@ -70,7 +73,6 @@ type PlayerAsepriteQuery<'a, 'b> = Single<'a, PlayerAsepriteQueryData<'b>, With<
 
 #[derive(Bundle)]
 pub struct Player(
-    Camera2d,
     Aseprite,
     HP,
     Transform,
@@ -87,11 +89,10 @@ pub struct Player(
 
 impl Player {
     const PLAYER_SIZE: (f32, f32) = (32.0, 32.0);
-    const PLAYER_COLLIDER_SIZE: (f32, f32) = (10.0, 14.0);
+    const PLAYER_COLLIDER_SIZE: (f32, f32) = (10.0, 12.0);
 
     fn new(transition: Vec3) -> Self {
         Self(
-            Camera2d,
             Aseprite::default()
                 .with_size(Vec2::new(Self::PLAYER_SIZE.0, Self::PLAYER_SIZE.1))
                 .with_filp_x(true),

@@ -14,8 +14,6 @@ impl TileMap {
 
     fn parse(
         mut command: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut material: ResMut<Assets<ColorMaterial>>,
         level_resource: Res<LevelResource>,
         level_asset: Res<Assets<LevelAsset>>,
         mut player_state: ResMut<NextState<PlayerState>>,
@@ -25,25 +23,18 @@ impl TileMap {
         for row_iter in 0..level_data.rows {
             for col_iter in 0..level_data.cols {
                 let transition = Vec3::new(
-                    (col_iter * LevelResource::TILE_SIZE.x as usize) as f32,
-                    (row_iter * LevelResource::TILE_SIZE.y as usize) as f32,
+                    (col_iter as isize * LevelResource::TILE_SIZE.x as isize
+                        + (LevelResource::TILE_SIZE.x >> 1) as isize) as f32,
+                    (row_iter as isize * LevelResource::TILE_SIZE.y as isize
+                        + (LevelResource::TILE_SIZE.y >> 1) as isize) as f32,
                     1.0,
                 );
                 match level_data.data[row_iter * level_data.cols + col_iter] {
                     TileType::Wall => {
-                        let shadow = Shadow::new(
-                            meshes.add(Rectangle::new(
-                                LevelResource::TILE_COLLIFDER_SIZE.x,
-                                LevelResource::TILE_COLLIFDER_SIZE.y,
-                            )),
-                            material.add(Color::srgba_u8(100, 0, 0, 80)),
-                        );
-                        command
-                            .spawn((
-                                Floor::new(transition, &level_resource),
-                                StateScoped(LevelState::Running),
-                            ))
-                            .with_child(shadow);
+                        command.spawn((
+                            Floor::new(transition, &level_resource),
+                            StateScoped(LevelState::Running),
+                        ));
                     }
                     TileType::Pass => {
                         command
@@ -53,13 +44,13 @@ impl TileMap {
                             ))
                             .observe(Self::pass);
                     }
-                    TileType::Hit => {
+                    TileType::Trap => {
                         command.spawn((
                             HitBox::new(transition, &level_resource),
                             StateScoped(LevelState::Running),
                         ));
                     }
-                    TileType::Space => (),
+                    TileType::None => (),
                 };
             }
         }

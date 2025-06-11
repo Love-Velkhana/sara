@@ -1,3 +1,4 @@
+mod ccamera;
 mod parallax;
 mod tilemap;
 use super::super::GameScene;
@@ -55,6 +56,7 @@ impl Level {
 impl Plugin for Level {
     fn build(&self, app: &mut App) {
         app.add_sub_state::<LevelState>()
+            .add_plugins(ccamera::LevelCamera)
             .add_plugins(parallax::Parallax)
             .add_plugins(tilemap::TileMap)
             .add_systems(OnEnter(GameScene::InGame), Self::init)

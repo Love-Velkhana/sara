@@ -30,7 +30,7 @@ impl Plugin for ScenePlugins {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         //todo 修改到合适的窗口大小
-                        resolution: WindowResolution::new(1152.0, 648.0),
+                        resolution: WindowResolution::new(800.0, 600.0),
                         ..Default::default()
                     }),
                     ..Default::default()
