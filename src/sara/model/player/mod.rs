@@ -45,21 +45,6 @@ enum PlayerRunningState {
     Walk,
     Idle,
 }
-/*
-#[derive(Component)]
-struct PlayerTwinkleTimer(Timer);
-impl PlayerTwinkleTimer {
-    const TWINKLE_TIME: f32 = 1.0;
-}
-impl Default for PlayerTwinkleTimer {
-    fn default() -> Self {
-        Self(Timer::from_seconds(Self::TWINKLE_TIME, TimerMode::Once))
-    }
-}
-
-type PlayerTwinkleTimerChangedQuery<'a, 'b> =
-    Single<'a, &'b mut PlayerTwinkleTimer, Changed<PlayerTwinkleTimer>>;
-*/
 
 #[derive(QueryData)]
 #[query_data(mutable)]
