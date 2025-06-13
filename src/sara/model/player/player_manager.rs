@@ -78,9 +78,11 @@ impl PlayerManager {
     }
 
     fn enter_fall(
-        mut player_aseprite_param: PlayerAsepriteQuery,
         player_resource: Res<PlayerResource>,
+        mut player_aseprite_param: PlayerAsepriteQuery,
+        mut player_speculative_margin: PlayerSpeculativeMarginQuery,
     ) {
+        **player_speculative_margin = SpeculativeMargin::MAX;
         let (image_handle, layout_handle) = player_resource
             .texture_atlas_handles
             .get(&PlayerAsepriteType::Fall)
@@ -127,14 +129,16 @@ impl PlayerManager {
         player_linear_velocity_query: PlayerLinearVelocityQuery,
         mut next_state: ResMut<NextState<PlayerRunningState>>,
     ) {
-        if player_linear_velocity_query.x.abs() == Self::VELOCITY_SPEED {
+        if player_linear_velocity_query.x.abs() == Self::VELOCITY_SPEED
+            && player_linear_velocity_query.y.abs() < 1.0
+        {
             next_state.set(PlayerRunningState::Walk);
         }
     }
 
     fn enter_jump(
-        mut player_aseprite_param: PlayerAsepriteQuery,
         player_resource: Res<PlayerResource>,
+        mut player_aseprite_param: PlayerAsepriteQuery,
     ) {
         let (image_handle, layout_handle) = player_resource
             .texture_atlas_handles
@@ -166,9 +170,11 @@ impl PlayerManager {
     }
 
     fn enter_walk(
-        mut player_aseprite_param: PlayerAsepriteQuery,
         player_resource: Res<PlayerResource>,
+        mut player_aseprite_param: PlayerAsepriteQuery,
+        mut player_speculative_margin: PlayerSpeculativeMarginQuery,
     ) {
+        **player_speculative_margin = SpeculativeMargin::ZERO;
         let (image_handle, layout_handle) = player_resource
             .texture_atlas_handles
             .get(&PlayerAsepriteType::Walk)

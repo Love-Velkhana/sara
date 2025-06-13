@@ -64,6 +64,7 @@ pub struct Player(
     RigidBody,
     Collider,
     CollisionEventsEnabled,
+    SpeculativeMargin,
     LockedAxes,
     Friction,
     Restitution,
@@ -71,6 +72,9 @@ pub struct Player(
     CollisionLayers,
     PlayerMarker,
 );
+
+type PlayerSpeculativeMarginQuery<'a, 'b> =
+    Single<'a, &'b mut SpeculativeMargin, With<PlayerMarker>>;
 
 impl Player {
     const PLAYER_SIZE: (f32, f32) = (32.0, 32.0);
@@ -86,6 +90,7 @@ impl Player {
             RigidBody::Dynamic,
             Collider::capsule(Self::PLAYER_COLLIDER_SIZE.0, Self::PLAYER_COLLIDER_SIZE.1),
             CollisionEventsEnabled,
+            SpeculativeMargin::ZERO,
             LockedAxes::ROTATION_LOCKED,
             Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
@@ -134,7 +139,7 @@ struct PlayerCheckers;
 impl PlayerCheckers {
     const CHECKER_X: f32 = (Player::PLAYER_COLLIDER_SIZE.0 - 0.8) / 2.0;
     const FLOOR_CHECKER_Y: f32 = -(Player::PLAYER_SIZE.1 - 0.5) / 2.0;
-    const FLOOR_CHECKER_MAX_DISTANCE: f32 = 16.0;
+    const FLOOR_CHECKER_MAX_DISTANCE: f32 = 3.0;
     const WALL_CHECKER_Y: f32 = -(Player::PLAYER_SIZE.1 - 1.6) / 2.0;
     const WALL_CHECKER_MAX_DISTANCE: f32 = 6.0;
 

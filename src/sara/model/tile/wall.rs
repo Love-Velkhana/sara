@@ -9,6 +9,7 @@ pub struct FloorMarker;
 #[derive(Bundle)]
 pub struct Floor(
     Sprite,
+    Mass,
     RigidBody,
     Collider,
     Transform,
@@ -31,6 +32,7 @@ impl Tile for Floor {
                 }),
                 ..Default::default()
             },
+            Mass(1000.0),
             RigidBody::Static,
             Collider::rectangle(
                 LevelResource::TILE_COLLIFDER_SIZE.x,
