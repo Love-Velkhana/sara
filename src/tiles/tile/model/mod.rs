@@ -1,0 +1,11 @@
+pub mod hitbox;
+pub mod passbox;
+pub mod prelude;
+pub mod wall;
+use crate::tile::data::LevelResource;
+use bevy::prelude::*;
+
+pub trait Tile {
+    type Output;
+    fn new(translation: Vec3, rotation: f32, level_resource: &Res<LevelResource>) -> Self::Output;
+}

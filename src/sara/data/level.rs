@@ -32,12 +32,15 @@ impl LevelResource {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize,Deref,DerefMut)]
+pub struct TileRotation(pub f32);
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TileType {
     None,
-    Wall,
-    Pass,
-    Trap,
+    Wall(TileRotation),
+    Pass(TileRotation),
+    Trap(TileRotation),
 }
 
 #[derive(Asset, TypePath, Debug, Serialize, Deserialize)]

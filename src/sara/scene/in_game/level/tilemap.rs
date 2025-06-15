@@ -1,9 +1,12 @@
-use super::{Level, LevelState};
+use super::{Level, LevelState, LevelWaitChange};
 use crate::scene::GameScene;
 use crate::utils::prelude::*;
 use crate::{data::prelude::*, model::prelude::*};
 use avian2d::prelude::*;
 use bevy::prelude::*;
+
+#[derive(Component)]
+pub struct TileMapMarker;
 
 pub struct TileMap;
 impl TileMap {
@@ -29,24 +32,27 @@ impl TileMap {
                         + (LevelResource::TILE_SIZE.y >> 1) as isize) as f32,
                     1.0,
                 );
-                match level_data.data[row_iter * level_data.cols + col_iter] {
-                    TileType::Wall => {
+                match &level_data.data[row_iter * level_data.cols + col_iter] {
+                    TileType::Wall(rotation) => {
                         command.spawn((
-                            Floor::new(transition, &level_resource),
+                            Floor::new(transition, rotation, &level_resource),
+                            TileMapMarker,
                             StateScoped(LevelState::Running),
                         ));
                     }
-                    TileType::Pass => {
+                    TileType::Pass(rotation) => {
                         command
                             .spawn((
-                                PassBox::new(transition, &level_resource),
+                                PassBox::new(transition, rotation, &level_resource),
+                                TileMapMarker,
                                 StateScoped(LevelState::Running),
                             ))
                             .observe(Self::pass);
                     }
-                    TileType::Trap => {
+                    TileType::Trap(rotation) => {
                         command.spawn((
-                            HitBox::new(transition, &level_resource),
+                            HitBox::new(transition, rotation, &level_resource),
+                            TileMapMarker,
                             StateScoped(LevelState::Running),
                         ));
                     }
@@ -81,11 +87,24 @@ impl TileMap {
         }
     }
 
+    fn pause(
+        _: Trigger<LevelWaitChange>,
+        mut command: Commands,
+        player: Single<Entity, With<PlayerMarker>>,
+        mut playings: Query<&mut AsepritePlaying, With<TileMapMarker>>,
+    ) {
+        for mut playing in playings.iter_mut() {
+            playing.0 = !playing.0;
+        }
+        command.trigger_targets(PlayerWaitChange, *player);
+    }
+
     fn update() {}
 }
 impl Plugin for TileMap {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(LevelState::Loading), Self::init)
+        app.add_observer(Self::pause)
+            .add_systems(OnEnter(LevelState::Loading), Self::init)
             .add_systems(OnEnter(LevelState::Running), Self::parse)
             .add_systems(Update, Self::update.run_if(Level::is_runnable()));
     }

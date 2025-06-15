@@ -20,7 +20,11 @@ impl HitBox {
 }
 impl Tile for HitBox {
     type Output = Self;
-    fn new(translation: Vec3, level_resource: &Res<LevelResource>) -> Self::Output {
+    fn new(
+        translation: Vec3,
+        rotation: &TileRotation,
+        level_resource: &Res<LevelResource>,
+    ) -> Self::Output {
         Self(
             Sprite {
                 image: level_resource.texture_handle.clone(),
@@ -35,7 +39,8 @@ impl Tile for HitBox {
                 LevelResource::TILE_COLLIFDER_SIZE.x,
                 LevelResource::TILE_COLLIFDER_SIZE.y,
             ),
-            Transform::from_translation(translation),
+            Transform::from_translation(translation)
+                .with_rotation(Quat::from_rotation_z(rotation.0.to_radians())),
             CollisionLayers::new(GameCollisionLayers::Hit, GameCollisionLayers::Player),
             HitBoxMarker,
         )

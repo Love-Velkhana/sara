@@ -9,7 +9,6 @@ pub struct Paused;
 impl Paused {
     fn init(mut command: Commands) {
         command.spawn((
-            Camera2d,
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
@@ -50,7 +49,6 @@ impl Paused {
     ) {
         if let Interaction::Pressed = *continue_button_query {
             next_state.set(InGameState::Paused.next());
-            info!("paused to running")
         }
     }
 }

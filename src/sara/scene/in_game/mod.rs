@@ -1,8 +1,10 @@
 mod level;
 mod pause;
+
 use super::GameScene;
 use avian2d::prelude::*;
 use bevy::prelude::*;
+use level::LevelWaitChange;
 
 #[derive(SubStates, Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[source(GameScene = GameScene::InGame)]
@@ -40,11 +42,17 @@ impl Plugin for InGmaeScene {
             .add_plugins(pause::Paused)
             .add_systems(
                 OnEnter(InGameState::Paused),
-                |mut time: ResMut<Time<Physics>>| time.pause(),
+                |mut time: ResMut<Time<Physics>>, mut command: Commands| {
+                    time.pause();
+                    command.trigger(LevelWaitChange);
+                },
             )
             .add_systems(
                 OnEnter(InGameState::Running),
-                |mut time: ResMut<Time<Physics>>| time.unpause(),
+                |mut time: ResMut<Time<Physics>>, mut command: Commands| {
+                    time.unpause();
+                    command.trigger(LevelWaitChange);
+                },
             )
             .add_systems(Update, Self::update.run_if(in_state(GameScene::InGame)));
     }

@@ -22,14 +22,32 @@ impl PlayerManager {
         command
             .spawn((player, StateScoped(PlayerState::Running)))
             .with_children(PlayerCheckers::add_to)
+            .observe(Self::pause)
             .observe(Self::hurt);
         next_state.set(PlayerState::Running);
+    }
+
+    fn pause(
+        _: Trigger<PlayerWaitChange>,
+        current_state: Res<State<PlayerRunningState>>,
+        mut playing: Single<&mut AsepritePlaying, With<PlayerMarker>>,
+        mut save_state: Local<PlayerRunningState>,
+        mut next_state: ResMut<NextState<PlayerRunningState>>,
+    ) {
+        if let PlayerRunningState::Wait = current_state.get() {
+            next_state.set(*save_state);
+            playing.0 = true;
+        } else {
+            *save_state = *current_state.get();
+            next_state.set(PlayerRunningState::Wait);
+            playing.0 = false;
+        }
     }
 
     fn hurt(
         trigger: Trigger<OnCollisionStart>,
         hitbox: Query<&HitBoxMarker>,
-        hp: PlayerHPQuery,
+        mut hp: PlayerHPQuery,
         //mut command: Commands,
         mut level_event: EventWriter<LevelPass>,
         mut next_scene: ResMut<NextState<GameScene>>,
@@ -42,7 +60,7 @@ impl PlayerManager {
             next_scene.set(GameScene::GameOver);
             return;
         }
-        //hp.0 -= 1;
+        hp.0 -= 1;
         //command.spawn(PlayerTwinkleTimer::default());
     }
 
@@ -160,7 +178,7 @@ impl PlayerManager {
         mut player_linear_velocity_query: PlayerLinearVelocityQueryMut,
         mut next_running_state: ResMut<NextState<PlayerRunningState>>,
     ) {
-        if input.just_released(KeyCode::Space) && player_linear_velocity_query.0.y > 0.0 {
+        if !input.pressed(KeyCode::Space) && player_linear_velocity_query.0.y > 0.0 {
             player_linear_velocity_query.y = 0.0;
         }
         if player_linear_velocity_query.y <= 0.0 {
@@ -207,6 +225,7 @@ impl PlayerManager {
     }
 
     fn render_rays(rays: Query<(&RayCaster, &RayHits)>, mut gizmos: Gizmos) {
+        #[cfg(feature = "debug")]
         for (ray, hits) in rays {
             let origin = ray.global_origin();
             let direction = ray.global_direction().as_vec2();
@@ -224,7 +243,8 @@ impl PlayerManager {
 }
 impl Plugin for PlayerManager {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Gravity(Vec2::new(0.0, -300.0)))
+        app.add_event::<PlayerWaitChange>()
+            .insert_resource(Gravity(Vec2::new(0.0, -300.0)))
             .add_sub_state::<PlayerState>()
             .add_systems(OnEnter(PlayerState::Loading), Self::init)
             .add_sub_state::<PlayerRunningState>()
@@ -235,7 +255,9 @@ impl Plugin for PlayerManager {
             .add_systems(OnEnter(PlayerRunningState::Fall), Self::enter_fall)
             .add_systems(
                 Update,
-                Self::handle_input.run_if(in_state(PlayerState::Running)),
+                Self::handle_input.run_if(
+                    in_state(PlayerState::Running).and(not(in_state(PlayerRunningState::Wait))),
+                ),
             )
             .add_systems(
                 Update,

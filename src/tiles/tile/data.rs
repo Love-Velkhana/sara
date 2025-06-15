@@ -1,22 +1,48 @@
 use bevy::asset::{AssetLoader, LoadContext, io::Reader};
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
+use bincode::{Decode, Encode, config};
 use thiserror::Error;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum TileType {
-    Space,
-    Wall,
-    Pass,
-    Hit,
+#[derive(Resource)]
+pub struct LevelResource {
+    pub _id: usize,
+    pub texture_handle: Handle<Image>,
+    pub layout_handle: Handle<TextureAtlasLayout>,
+    pub data_handle: Handle<LevelAsset>,
+}
+impl LevelResource {
+    const PATH_BASE: &'static str = "data/level";
+    const SUFFIX: &'static str = ".sbc";
+    pub const TEXTURE_ATLAS_PATH: &'static str = "images/building/tiles.png";
+    pub const TILE_SIZE: UVec2 = UVec2::new(32, 32);
+    pub const TILE_ROWS: u32 = 16;
+    pub const TILE_COLS: u32 = 16;
+
+    pub fn data_path(id: usize) -> String {
+        Self::PATH_BASE.to_string() + &id.to_string() + Self::SUFFIX
+    }
 }
 
-#[derive(Asset, TypePath, Debug, Serialize, Deserialize)]
+#[derive(Debug, Encode, Decode, Clone, Copy)]
+pub enum TileType {
+    Wall,
+    Pass,
+    Trap,
+}
+
+#[derive(Debug, Encode, Decode, Clone, Copy)]
+pub struct TileDescriptor {
+    pub tile_pos: (f32, f32),
+    pub tile_typ: TileType,
+    pub rotation: f32,
+}
+
+#[derive(Asset, TypePath, Debug, Encode, Decode)]
 pub struct LevelAsset {
     pub rows: usize,
     pub cols: usize,
-    pub data: Vec<TileType>,
-    pub entry: Vec2,
+    pub data: Vec<TileDescriptor>,
+    pub entry: (f32, f32),
     pub next: Option<usize>,
 }
 
@@ -24,8 +50,8 @@ pub struct LevelAsset {
 pub enum LevelAssetError {
     #[error("Could not load asset: {0}")]
     IOError(#[from] std::io::Error),
-    #[error("Could not parse json: {0}")]
-    SerdeError(#[from] serde_json::Error),
+    #[error("Could not decode sbc: {0}")]
+    DecodeError(#[from] bincode::error::DecodeError),
 }
 
 #[derive(Default)]
@@ -43,10 +69,11 @@ impl AssetLoader for LevelAssetLoader {
     ) -> Result<Self::Asset, Self::Error> {
         let mut buf = Vec::new();
         reader.read_to_end(&mut buf).await?;
-        Ok(serde_json::from_slice(&buf)?)
+        let (asset, _) = bincode::decode_from_slice(&buf, config::standard())?;
+        Ok(asset)
     }
 
     fn extensions(&self) -> &[&str] {
-        &[".m"]
+        &[LevelResource::SUFFIX]
     }
 }

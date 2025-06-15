@@ -8,5 +8,9 @@ use bevy::prelude::*;
 
 pub trait Tile {
     type Output;
-    fn new(translation: Vec3, level_resource: &Res<LevelResource>) -> Self::Output;
+    fn new(
+        translation: Vec3,
+        rotation: &TileRotation,
+        level_resource: &Res<LevelResource>,
+    ) -> Self::Output;
 }

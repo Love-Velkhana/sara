@@ -22,7 +22,11 @@ impl Floor {
 }
 impl Tile for Floor {
     type Output = Self;
-    fn new(translation: Vec3, level_resource: &Res<LevelResource>) -> Self::Output {
+    fn new(
+        translation: Vec3,
+        rotation: &TileRotation,
+        level_resource: &Res<LevelResource>,
+    ) -> Self::Output {
         Self(
             Sprite {
                 image: level_resource.texture_handle.clone(),
@@ -38,7 +42,8 @@ impl Tile for Floor {
                 LevelResource::TILE_COLLIFDER_SIZE.x,
                 LevelResource::TILE_COLLIFDER_SIZE.y,
             ),
-            Transform::from_translation(translation),
+            Transform::from_translation(translation)
+                .with_rotation(Quat::from_rotation_z(rotation.0.to_radians())),
             Restitution::ZERO,
             CollisionLayers::new(GameCollisionLayers::Enviroment, GameCollisionLayers::Player),
             FloorMarker,

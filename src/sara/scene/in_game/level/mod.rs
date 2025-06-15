@@ -6,6 +6,9 @@ use super::InGameState;
 use crate::data::level::*;
 use bevy::prelude::*;
 
+#[derive(Event)]
+pub struct LevelWaitChange;
+
 #[derive(SubStates, PartialEq, Eq, Clone, Copy, Debug, Default, Hash)]
 #[source(GameScene = GameScene::InGame)]
 #[states(scoped_entities)]
@@ -55,7 +58,8 @@ impl Level {
 }
 impl Plugin for Level {
     fn build(&self, app: &mut App) {
-        app.add_sub_state::<LevelState>()
+        app.add_event::<LevelWaitChange>()
+            .add_sub_state::<LevelState>()
             .add_plugins(ccamera::LevelCamera)
             .add_plugins(parallax::Parallax)
             .add_plugins(tilemap::TileMap)

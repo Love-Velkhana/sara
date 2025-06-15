@@ -17,6 +17,9 @@ pub enum PlayerState {
     Running,
 }
 
+#[derive(Event)]
+pub struct PlayerWaitChange;
+
 #[derive(Component)]
 pub struct PlayerMarker;
 pub type PlayerLinearVelocityQueryMut<'a, 'b> =
@@ -44,6 +47,7 @@ enum PlayerRunningState {
     Jump,
     Walk,
     Idle,
+    Wait,
 }
 
 #[derive(QueryData)]
