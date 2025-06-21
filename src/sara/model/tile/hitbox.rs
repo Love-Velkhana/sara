@@ -15,22 +15,15 @@ pub struct HitBox(
     CollisionLayers,
     HitBoxMarker,
 );
-impl HitBox {
-    const HITBOX_TEXTURE_ATLAS_INDEX: usize = 194;
-}
 impl Tile for HitBox {
     type Output = Self;
-    fn new(
-        translation: Vec3,
-        rotation: &TileRotation,
-        level_resource: &Res<LevelResource>,
-    ) -> Self::Output {
+    fn new(translation: Vec3, rotation: f32, level_resource: &Res<LevelResource>) -> Self::Output {
         Self(
             Sprite {
                 image: level_resource.texture_handle.clone(),
                 texture_atlas: Some(TextureAtlas {
                     layout: level_resource.layout_handle.clone(),
-                    index: Self::HITBOX_TEXTURE_ATLAS_INDEX,
+                    index: TileType::Trap.texture_atlas_index(),
                 }),
                 ..Default::default()
             },
@@ -39,8 +32,7 @@ impl Tile for HitBox {
                 LevelResource::TILE_COLLIFDER_SIZE.x,
                 LevelResource::TILE_COLLIFDER_SIZE.y,
             ),
-            Transform::from_translation(translation)
-                .with_rotation(Quat::from_rotation_z(rotation.0.to_radians())),
+            Transform::from_translation(translation).with_rotation(Quat::from_rotation_z(rotation)),
             CollisionLayers::new(GameCollisionLayers::Hit, GameCollisionLayers::Player),
             HitBoxMarker,
         )

@@ -1,8 +1,7 @@
-use bevy::{
-    asset::{AssetLoader, LoadContext, io::Reader},
-    prelude::*,
-};
-use serde::{Deserialize, Serialize};
+use bevy::asset::{AssetLoader, LoadContext, io::Reader};
+use bevy::prelude::*;
+use bincode::{Decode, Encode, config};
+use strum::EnumIter;
 use thiserror::Error;
 
 #[derive(Event)]
@@ -20,7 +19,7 @@ pub struct LevelResource {
 }
 impl LevelResource {
     const PATH_BASE: &'static str = "data/level";
-    const SUFFIX: &'static str = ".m";
+    const SUFFIX: &'static str = ".sbc";
     pub const TEXTURE_ATLAS_PATH: &'static str = "images/building/tiles.png";
     pub const TILE_SIZE: UVec2 = UVec2::new(32, 32);
     pub const TILE_COLLIFDER_SIZE: Vec2 = Vec2::new(32.0, 32.0);
@@ -32,32 +31,44 @@ impl LevelResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize,Deref,DerefMut)]
-pub struct TileRotation(pub f32);
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Encode, Decode, Clone, Copy, EnumIter, PartialEq, Eq)]
 pub enum TileType {
-    None,
-    Wall(TileRotation),
-    Pass(TileRotation),
-    Trap(TileRotation),
+    Wall,
+    Pass,
+    Trap,
+}
+impl TileType {
+    pub const fn texture_atlas_index(&self) -> usize {
+        match self {
+            Self::Wall => 36,
+            Self::Trap => 194,
+            Self::Pass => 0,
+        }
+    }
 }
 
-#[derive(Asset, TypePath, Debug, Serialize, Deserialize)]
+#[derive(Debug, Encode, Decode, Clone, Copy)]
+pub struct TileDescriptor {
+    pub tile_pos: (f32, f32),
+    pub tile_typ: TileType,
+    pub rotation: f32,
+}
+
+#[derive(Asset, TypePath, Debug, Encode, Decode)]
 pub struct LevelAsset {
     pub rows: usize,
     pub cols: usize,
-    pub data: Vec<TileType>,
-    pub entry: Vec2,
+    pub data: Vec<TileDescriptor>,
+    pub entry: (f32, f32),
     pub next: Option<usize>,
 }
 
 #[derive(Error, Debug)]
 pub enum LevelAssetError {
     #[error("Could not load asset: {0}")]
-    IoError(#[from] std::io::Error),
-    #[error("Could not parse json: {0}")]
-    SerdeError(#[from] serde_json::Error),
+    IOError(#[from] std::io::Error),
+    #[error("Could not decode sbc: {0}")]
+    DecodeError(#[from] bincode::error::DecodeError),
 }
 
 #[derive(Default)]
@@ -75,7 +86,8 @@ impl AssetLoader for LevelAssetLoader {
     ) -> Result<Self::Asset, Self::Error> {
         let mut buf = Vec::new();
         reader.read_to_end(&mut buf).await?;
-        Ok(serde_json::from_slice(&buf)?)
+        let (asset, _) = bincode::decode_from_slice(&buf, config::standard())?;
+        Ok(asset)
     }
 
     fn extensions(&self) -> &[&str] {

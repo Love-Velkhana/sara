@@ -14,10 +14,10 @@ struct Area {
 struct LimitArea(Area);
 
 #[derive(Component)]
-struct HoverArea(Area);
+struct TrackingArea(Area);
 
 #[derive(Component)]
-struct HoverFlag {
+struct TrackingFlag {
     x: bool,
     y: bool,
 }
@@ -33,8 +33,8 @@ struct LevelCameraParam<'a> {
     linear_velocity: &'a mut LinearVelocity,
     tranform: &'a mut Transform,
     limit_area: &'a LimitArea,
-    hover_area: &'a HoverArea,
-    hover_flag: &'a mut HoverFlag,
+    tracking_area: &'a TrackingArea,
+    tracking_flag: &'a mut TrackingFlag,
 }
 
 type LevelCameraParamQuery<'a, 'b> =
@@ -69,11 +69,11 @@ impl LevelCamera {
                 half_width: ((data.cols * LevelResource::TILE_SIZE.x as usize) >> 1) as f32,
                 half_height: ((data.rows * LevelResource::TILE_SIZE.y as usize) >> 1) as f32,
             }),
-            HoverArea(Area {
+            TrackingArea(Area {
                 half_width: Self::HOVER_AREA_VAL,
                 half_height: Self::HOVER_AREA_VAL,
             }),
-            HoverFlag { x: false, y: false },
+            TrackingFlag { x: false, y: false },
             LevelCameraMarker,
             StateScoped(LevelState::Running),
         ));
@@ -91,18 +91,18 @@ impl LevelCamera {
             return;
         }
 
-        if !camera_param.hover_flag.x
+        if !camera_param.tracking_flag.x
             && (camera_param.tranform.translation.x - player_transform.translation.x).abs()
-                < camera_param.hover_area.0.half_width
+                < camera_param.tracking_area.0.half_width
         {
-            camera_param.hover_flag.x = true;
+            camera_param.tracking_flag.x = true;
         }
 
-        if !camera_param.hover_flag.y
+        if !camera_param.tracking_flag.y
             && (camera_param.tranform.translation.y - player_transform.translation.y).abs()
-                < camera_param.hover_area.0.half_height
+                < camera_param.tracking_area.0.half_height
         {
-            camera_param.hover_flag.y = true;
+            camera_param.tracking_flag.y = true;
         }
 
         let (x_dir, y_dir) = (
@@ -118,7 +118,7 @@ impl LevelCamera {
             },
         );
 
-        if camera_param.hover_flag.x {
+        if camera_param.tracking_flag.x {
             if ((camera_param.tranform.translation.x
                 + player_linear_velocity.x * time.delta_secs()
                 + x_dir * window.width() / 2.0)
@@ -130,11 +130,11 @@ impl LevelCamera {
             } else {
                 camera_param.tranform.translation.x = camera_param.limit_area.0.half_width
                     + x_dir * (camera_param.limit_area.0.half_width - window.width() / 2.0);
-                camera_param.hover_flag.x = false;
+                camera_param.tracking_flag.x = false;
             }
         }
 
-        if camera_param.hover_flag.y {
+        if camera_param.tracking_flag.y {
             if ((camera_param.tranform.translation.y
                 + player_linear_velocity.y * time.delta_secs()
                 + y_dir * window.height() / 2.0)
@@ -146,7 +146,7 @@ impl LevelCamera {
             } else {
                 camera_param.tranform.translation.y = camera_param.limit_area.0.half_height
                     + y_dir * (camera_param.limit_area.0.half_height - window.height() / 2.0);
-                camera_param.hover_flag.y = false;
+                camera_param.tracking_flag.y = false;
             }
         }
     }

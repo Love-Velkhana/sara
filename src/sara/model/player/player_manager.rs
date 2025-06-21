@@ -12,13 +12,8 @@ impl PlayerManager {
         level_config: Res<Assets<LevelAsset>>,
         mut next_state: ResMut<NextState<PlayerState>>,
     ) {
-        let player = Player::new(
-            level_config
-                .get(&level_resource.data_handle)
-                .unwrap()
-                .entry
-                .extend(2.0),
-        );
+        let entry = level_config.get(&level_resource.data_handle).unwrap().entry;
+        let player = Player::new(Vec3::new(entry.0, entry.1, 2.0));
         command
             .spawn((player, StateScoped(PlayerState::Running)))
             .with_children(PlayerCheckers::add_to)

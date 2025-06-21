@@ -17,22 +17,15 @@ pub struct Floor(
     CollisionLayers,
     FloorMarker,
 );
-impl Floor {
-    const FLOOR_TEXTURE_ATLAS_INDEX: usize = 36;
-}
 impl Tile for Floor {
     type Output = Self;
-    fn new(
-        translation: Vec3,
-        rotation: &TileRotation,
-        level_resource: &Res<LevelResource>,
-    ) -> Self::Output {
+    fn new(translation: Vec3, rotation: f32, level_resource: &Res<LevelResource>) -> Self::Output {
         Self(
             Sprite {
                 image: level_resource.texture_handle.clone(),
                 texture_atlas: Some(TextureAtlas {
                     layout: level_resource.layout_handle.clone(),
-                    index: Self::FLOOR_TEXTURE_ATLAS_INDEX,
+                    index: TileType::Wall.texture_atlas_index(),
                 }),
                 ..Default::default()
             },
@@ -42,8 +35,7 @@ impl Tile for Floor {
                 LevelResource::TILE_COLLIFDER_SIZE.x,
                 LevelResource::TILE_COLLIFDER_SIZE.y,
             ),
-            Transform::from_translation(translation)
-                .with_rotation(Quat::from_rotation_z(rotation.0.to_radians())),
+            Transform::from_translation(translation).with_rotation(Quat::from_rotation_z(rotation)),
             Restitution::ZERO,
             CollisionLayers::new(GameCollisionLayers::Enviroment, GameCollisionLayers::Player),
             FloorMarker,

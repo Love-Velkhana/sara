@@ -2,7 +2,7 @@ pub mod hitbox;
 pub mod passbox;
 pub mod prelude;
 pub mod wall;
-use crate::tile::data::LevelResource;
+use crate::tile::data::*;
 use bevy::prelude::*;
 
 pub trait Tile {

@@ -18,16 +18,12 @@ pub struct PassBox(
     PassBoxMarker,
 );
 impl PassBox {
-    const FRAME_START_INDEX: usize = 0;
+    const FRAME_START_INDEX: usize = TileType::Pass.texture_atlas_index();
     const FRAME_LAST_INDEX: usize = 4;
 }
 impl Tile for PassBox {
     type Output = Self;
-    fn new(
-        translation: Vec3,
-        rotation: &TileRotation,
-        level_resource: &Res<LevelResource>,
-    ) -> Self::Output {
+    fn new(translation: Vec3, rotation: f32, level_resource: &Res<LevelResource>) -> Self::Output {
         Self(
             Aseprite::new(
                 Sprite {
@@ -48,8 +44,7 @@ impl Tile for PassBox {
             ),
             Sensor,
             CollisionEventsEnabled,
-            Transform::from_translation(translation)
-                .with_rotation(Quat::from_rotation_z(rotation.0.to_degrees())),
+            Transform::from_translation(translation).with_rotation(Quat::from_rotation_z(rotation)),
             CollisionLayers::new(GameCollisionLayers::Operation, GameCollisionLayers::Player),
             PassBoxMarker,
         )

@@ -8,7 +8,7 @@ struct PassBoxMarker;
 #[derive(Bundle)]
 pub struct PassBox(Aseprite, Transform, PassBoxMarker);
 impl PassBox {
-    const FRAME_START_INDEX: usize = 0;
+    const FRAME_START_INDEX: usize = TileType::Pass.texture_atlas_index();
     const FRAME_LAST_INDEX: usize = 4;
 }
 impl Tile for PassBox {

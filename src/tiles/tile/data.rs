@@ -1,11 +1,12 @@
 use bevy::asset::{AssetLoader, LoadContext, io::Reader};
 use bevy::prelude::*;
 use bincode::{Decode, Encode, config};
+use strum::EnumIter;
 use thiserror::Error;
 
 #[derive(Resource)]
 pub struct LevelResource {
-    pub _id: usize,
+    pub id: usize,
     pub texture_handle: Handle<Image>,
     pub layout_handle: Handle<TextureAtlasLayout>,
     pub data_handle: Handle<LevelAsset>,
@@ -23,11 +24,20 @@ impl LevelResource {
     }
 }
 
-#[derive(Debug, Encode, Decode, Clone, Copy)]
+#[derive(Debug, Encode, Decode, Clone, Copy, EnumIter, PartialEq, Eq)]
 pub enum TileType {
     Wall,
     Pass,
     Trap,
+}
+impl TileType {
+    pub const fn texture_atlas_index(&self) -> usize {
+        match self {
+            Self::Wall => 36,
+            Self::Trap => 194,
+            Self::Pass => 0,
+        }
+    }
 }
 
 #[derive(Debug, Encode, Decode, Clone, Copy)]

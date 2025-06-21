@@ -23,42 +23,33 @@ impl TileMap {
         mut aseprite_system_state: ResMut<NextState<AsepriteSystemState>>,
     ) {
         let level_data = level_asset.get(&level_resource.data_handle).unwrap();
-        for row_iter in 0..level_data.rows {
-            for col_iter in 0..level_data.cols {
-                let transition = Vec3::new(
-                    (col_iter as isize * LevelResource::TILE_SIZE.x as isize
-                        + (LevelResource::TILE_SIZE.x >> 1) as isize) as f32,
-                    (row_iter as isize * LevelResource::TILE_SIZE.y as isize
-                        + (LevelResource::TILE_SIZE.y >> 1) as isize) as f32,
-                    1.0,
-                );
-                match &level_data.data[row_iter * level_data.cols + col_iter] {
-                    TileType::Wall(rotation) => {
-                        command.spawn((
-                            Floor::new(transition, rotation, &level_resource),
+        for descriptor in &level_data.data {
+            let translation = Vec3::new(descriptor.tile_pos.0, descriptor.tile_pos.1, 0.0);
+            match descriptor.tile_typ {
+                TileType::Pass => {
+                    command
+                        .spawn((
+                            PassBox::new(translation, descriptor.rotation, &level_resource),
                             TileMapMarker,
                             StateScoped(LevelState::Running),
-                        ));
-                    }
-                    TileType::Pass(rotation) => {
-                        command
-                            .spawn((
-                                PassBox::new(transition, rotation, &level_resource),
-                                TileMapMarker,
-                                StateScoped(LevelState::Running),
-                            ))
-                            .observe(Self::pass);
-                    }
-                    TileType::Trap(rotation) => {
-                        command.spawn((
-                            HitBox::new(transition, rotation, &level_resource),
-                            TileMapMarker,
-                            StateScoped(LevelState::Running),
-                        ));
-                    }
-                    TileType::None => (),
-                };
-            }
+                        ))
+                        .observe(Self::pass);
+                }
+                TileType::Wall => {
+                    command.spawn((
+                        Floor::new(translation, descriptor.rotation, &level_resource),
+                        TileMapMarker,
+                        StateScoped(LevelState::Running),
+                    ));
+                }
+                TileType::Trap => {
+                    command.spawn((
+                        HitBox::new(translation, descriptor.rotation, &level_resource),
+                        TileMapMarker,
+                        StateScoped(LevelState::Running),
+                    ));
+                }
+            };
         }
         player_state.set(PlayerState::Loading);
         aseprite_system_state.set(AsepriteSystemState::Running);

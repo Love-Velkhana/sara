@@ -12,7 +12,7 @@ impl Tile {
         mut next_state: ResMut<NextState<super::TilesState>>,
     ) {
         command.insert_resource(LevelResource {
-            _id: 0,
+            id: 0,
             texture_handle: asset_server.load(LevelResource::TEXTURE_ATLAS_PATH),
             layout_handle: asset_server.add(TextureAtlasLayout::from_grid(
                 LevelResource::TILE_SIZE,
