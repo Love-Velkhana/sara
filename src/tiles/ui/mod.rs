@@ -20,6 +20,7 @@ enum UIState {
 struct Selected {
     id: Entity,
     typ: TileType,
+    rotation: f32,
 }
 
 struct TileData {

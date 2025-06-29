@@ -259,7 +259,7 @@ impl TilesPlugin {
         let key = real_translation.truncate().as_uvec2();
 
         if let Some(tile_data) = map_data.data.get(&key) {
-            if selected.typ == tile_data.typ {
+            if selected.typ == tile_data.typ && selected.rotation == tile_data.rotation {
                 return;
             } else {
                 command.entity(tile_data.id).despawn();
@@ -269,13 +269,25 @@ impl TilesPlugin {
 
         let id = match selected.typ {
             TileType::Wall => command
-                .spawn(Floor::new(real_translation, 0.0, &level_resource))
+                .spawn(Floor::new(
+                    real_translation,
+                    selected.rotation,
+                    &level_resource,
+                ))
                 .id(),
             TileType::Pass => command
-                .spawn(PassBox::new(real_translation, 0.0, &level_resource))
+                .spawn(PassBox::new(
+                    real_translation,
+                    selected.rotation,
+                    &level_resource,
+                ))
                 .id(),
             TileType::Trap => command
-                .spawn(HitBox::new(real_translation, 0.0, &level_resource))
+                .spawn(HitBox::new(
+                    real_translation,
+                    selected.rotation,
+                    &level_resource,
+                ))
                 .id(),
         };
         map_data.data.insert(
@@ -283,7 +295,7 @@ impl TilesPlugin {
             TileData {
                 id,
                 typ: selected.typ,
-                rotation: 0.0,
+                rotation: selected.rotation,
             },
         );
     }

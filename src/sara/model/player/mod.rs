@@ -30,7 +30,7 @@ pub type PlayerTransformQuery<'a, 'b> = Single<'a, &'b Transform, With<PlayerMar
 #[derive(Component)]
 struct HP(usize);
 impl HP {
-    const MAX_HP: usize = 2;
+    const MAX_HP: usize = 200;
 }
 impl Default for HP {
     fn default() -> Self {

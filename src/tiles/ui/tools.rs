@@ -55,6 +55,10 @@ struct TileTypeButton;
 )]
 struct TrackingButton;
 
+#[derive(Component)]
+#[require(EditableText)]
+struct RotationEditLineText;
+
 pub(super) struct ToolsPlugin;
 impl ToolsPlugin {
     const SVAE_BUTTON_LAB: &'static str = "save";
@@ -108,10 +112,12 @@ impl ToolsPlugin {
                             Self::create_choice(parent, tile_type, &tiles_resource);
                         }
                     });
+                Self::create_rotation(parent);
             });
         command.insert_resource(Selected {
             id,
             typ: TileType::Wall,
+            rotation: 0.0,
         });
         command.trigger_targets(UIButtonDown, id);
     }
@@ -176,10 +182,7 @@ impl ToolsPlugin {
                     command
                         .entity(trigger.target())
                         .insert(Self::SELECTED_OUTLINE);
-                    *selected.as_mut() = Selected {
-                        id: trigger.target(),
-                        typ: TileType::Wall,
-                    };
+                    selected.as_mut().id = trigger.target();
                     editor_next_state.set(EditorState::Tracking);
                 },
             )
@@ -213,11 +216,54 @@ impl ToolsPlugin {
                     command
                         .entity(trigger.target())
                         .insert(Self::SELECTED_OUTLINE);
-                    *selected.as_mut() = Selected {
-                        id: trigger.target(),
-                        typ: tile_type,
-                    };
+                    selected.as_mut().id = trigger.target();
+                    selected.as_mut().typ = tile_type;
                     editor_next_state.set(EditorState::Selected);
+                },
+            );
+    }
+
+    fn create_rotation(command: &mut ChildSpawnerCommands) {
+        command.spawn((
+            Node {
+                width: Val::Auto,
+                height: Val::Auto,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..Default::default()
+            },
+            children![Text::new("rotation")],
+        ));
+        let editable_text_id = command
+            .commands()
+            .spawn((
+                Text::new("0"),
+                CursorPosition(0),
+                EditableText,
+                RotationEditLineText,
+            ))
+            .id();
+        command
+            .spawn((
+                Node {
+                    width: Val::Percent(50.0),
+                    height: Val::Px(48.0),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
+                },
+                EditableTextEntity(editable_text_id),
+                BorderRadius::all(Val::Px(4.0)),
+                EditLine::DEFAULT_OUTLINE,
+                EditLine,
+            ))
+            .add_child(editable_text_id)
+            .observe(
+                |_: Trigger<EditFinished>,
+                 text: Single<&Text, With<RotationEditLineText>>,
+                 mut selected: ResMut<Selected>|
+                 -> Result {
+                    Ok(selected.as_mut().rotation = text.parse::<f32>()?.to_radians())
                 },
             );
     }

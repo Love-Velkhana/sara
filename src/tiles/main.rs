@@ -15,6 +15,7 @@ fn main() {
         .add_plugins(ui::UIPlugin)
         .add_plugins(tile::Tile)
         .add_plugins(utils::aseprite::AsepritePlugin)
+        .add_plugins(utils::editline::EditLinePlugin)
         .init_state::<TilesState>()
         .run();
 }
