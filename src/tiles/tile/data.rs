@@ -5,22 +5,47 @@ use strum::EnumIter;
 use thiserror::Error;
 
 #[derive(Resource)]
-pub struct LevelResource {
-    pub id: usize,
-    pub texture_handle: Handle<Image>,
-    pub layout_handle: Handle<TextureAtlasLayout>,
-    pub data_handle: Handle<LevelAsset>,
-}
-impl LevelResource {
+pub struct LevelDynamicResource(pub Handle<LevelAsset>);
+impl LevelDynamicResource {
     const PATH_BASE: &'static str = "data/level";
     const SUFFIX: &'static str = ".sbc";
+
+    fn asset_path(id: usize) -> String {
+        Self::PATH_BASE.to_string() + &id.to_string() + Self::SUFFIX
+    }
+
+    pub fn data_path(id: usize) -> String {
+        String::from("assets/") + &Self::asset_path(id)
+    }
+
+    pub fn new(id: usize, asset_server: &Res<AssetServer>) -> Self {
+        let data_handle = asset_server.load(Self::asset_path(id));
+        Self(data_handle)
+    }
+}
+
+#[derive(Resource)]
+pub struct LevelStaticResource {
+    pub texture_handle: Handle<Image>,
+    pub layout_handle: Handle<TextureAtlasLayout>,
+}
+impl LevelStaticResource {
     pub const TEXTURE_ATLAS_PATH: &'static str = "images/building/tiles.png";
     pub const TILE_SIZE: UVec2 = UVec2::new(32, 32);
     pub const TILE_ROWS: u32 = 16;
     pub const TILE_COLS: u32 = 16;
 
-    pub fn data_path(id: usize) -> String {
-        Self::PATH_BASE.to_string() + &id.to_string() + Self::SUFFIX
+    pub fn new(asset_server: &Res<AssetServer>) -> Self {
+        Self {
+            texture_handle: asset_server.load(Self::TEXTURE_ATLAS_PATH),
+            layout_handle: asset_server.add(TextureAtlasLayout::from_grid(
+                Self::TILE_SIZE,
+                Self::TILE_COLS,
+                Self::TILE_ROWS,
+                None,
+                None,
+            )),
+        }
     }
 }
 
@@ -84,6 +109,6 @@ impl AssetLoader for LevelAssetLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        &[LevelResource::SUFFIX]
+        &[LevelDynamicResource::SUFFIX]
     }
 }

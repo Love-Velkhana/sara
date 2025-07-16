@@ -3,8 +3,8 @@ mod ui;
 mod utils;
 use bevy::prelude::*;
 
-#[derive(States, Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-enum TilesState {
+#[derive(States, Copy, Clone, Eq, PartialEq, Debug, Default, Hash)]
+enum AppState {
     #[default]
     Prepare,
     Running,
@@ -16,6 +16,6 @@ fn main() {
         .add_plugins(tile::Tile)
         .add_plugins(utils::aseprite::AsepritePlugin)
         .add_plugins(utils::editline::EditLinePlugin)
-        .init_state::<TilesState>()
+        .init_state::<AppState>()
         .run();
 }

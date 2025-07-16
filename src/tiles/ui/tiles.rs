@@ -15,11 +15,10 @@ struct TilesMarker;
 struct MapGrid;
 
 #[derive(Event)]
-struct GridCreateEvent {
-    pub rows: usize,
-    pub cols: usize,
-    pub color: [f32; 4],
-}
+pub struct GridCreateEvent;
+
+#[derive(Event)]
+pub struct ParseTilesEvent;
 
 #[derive(Component)]
 #[require(Sprite)]
@@ -32,104 +31,7 @@ impl TilesPlugin {
     const COLOR_VERTEX: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
     const TILEMAP_SCALE_RANGE: (f32, f32) = (0.65, 1.5);
 
-    fn create_grid(
-        trigger: Trigger<GridCreateEvent>,
-        mut command: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<ColorMaterial>>,
-        grid_entities: Query<Entity, With<MapGrid>>,
-    ) {
-        for entity in grid_entities {
-            command.entity(entity).despawn();
-        }
-
-        let mut mesh = Mesh::new(
-            bevy::render::mesh::PrimitiveTopology::LineList,
-            RenderAssetUsages::RENDER_WORLD,
-        );
-
-        let mut positions = Vec::new();
-        let mut colors = Vec::new();
-        for col in 0..=trigger.cols {
-            let x = col as f32 * Self::SPACING;
-            positions.push([x, 0.0, 0.0]);
-            positions.push([x, (trigger.rows as f32) * Self::SPACING, 0.0]);
-            colors.push(trigger.color);
-            colors.push(trigger.color);
-        }
-
-        for row in 0..=trigger.rows {
-            let y = row as f32 * Self::SPACING;
-            positions.push([0.0, y, 0.0]);
-            positions.push([(trigger.cols as f32) * Self::SPACING, y, 0.0]);
-            colors.push(trigger.color);
-            colors.push(trigger.color);
-        }
-
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-
-        command.spawn((
-            Mesh2d(meshes.add(mesh)),
-            MeshMaterial2d(materials.add(ColorMaterial::default())),
-            MapGrid,
-        ));
-    }
-
-    fn parse(
-        window: Single<&Window>,
-        mut command: Commands,
-        mut map_data: ResMut<MapData>,
-        level_resource: Res<LevelResource>,
-        asset: Res<Assets<LevelAsset>>,
-        mut next_state: ResMut<NextState<AsepriteSystemState>>,
-    ) {
-        let level_asset = asset.get(&level_resource.data_handle).unwrap();
-        command.trigger(GridCreateEvent {
-            rows: level_asset.rows,
-            cols: level_asset.cols,
-            color: Self::COLOR_VERTEX,
-        });
-        map_data.id = level_resource.id;
-        map_data.rows = level_asset.rows;
-        map_data.cols = level_asset.cols;
-        map_data.entry = level_asset.entry;
-        map_data.next = level_asset.next;
-
-        for descriptor in &level_asset.data {
-            let translation = Vec3::new(descriptor.tile_pos.0, descriptor.tile_pos.1, 0.0);
-            let id = match descriptor.tile_typ {
-                TileType::Pass => command
-                    .spawn(PassBox::new(
-                        translation,
-                        descriptor.rotation,
-                        &level_resource,
-                    ))
-                    .id(),
-                TileType::Wall => command
-                    .spawn(Floor::new(
-                        translation,
-                        descriptor.rotation,
-                        &level_resource,
-                    ))
-                    .id(),
-                TileType::Trap => command
-                    .spawn(HitBox::new(
-                        translation,
-                        descriptor.rotation,
-                        &level_resource,
-                    ))
-                    .id(),
-            };
-            map_data.data.insert(
-                translation.truncate().as_uvec2(),
-                TileData {
-                    id,
-                    typ: descriptor.tile_typ,
-                    rotation: descriptor.rotation,
-                },
-            );
-        }
+    fn init(window: Single<&Window>, mut command: Commands) {
         command.spawn((
             Camera2d,
             Camera {
@@ -145,7 +47,118 @@ impl TilesPlugin {
             ),
             TilesMarker,
         ));
-        next_state.set(AsepriteSystemState::Running);
+    }
+
+    fn create_grid(
+        _: Trigger<GridCreateEvent>,
+        mut command: Commands,
+        map_data: Res<MapData>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<ColorMaterial>>,
+        grid_entities: Query<Entity, With<MapGrid>>,
+    ) {
+        for entity in grid_entities {
+            command.entity(entity).despawn();
+        }
+
+        if map_data.cols == 0 || map_data.rows == 0 {
+            return;
+        }
+
+        let mut mesh = Mesh::new(
+            bevy::render::mesh::PrimitiveTopology::LineList,
+            RenderAssetUsages::RENDER_WORLD,
+        );
+
+        let mut positions = Vec::new();
+        let mut colors = Vec::new();
+        for col in 0..=map_data.cols {
+            let x = col as f32 * Self::SPACING;
+            positions.push([x, 0.0, 0.0]);
+            positions.push([x, (map_data.rows as f32) * Self::SPACING, 0.0]);
+            colors.push(Self::COLOR_VERTEX);
+            colors.push(Self::COLOR_VERTEX);
+        }
+
+        for row in 0..=map_data.rows {
+            let y = row as f32 * Self::SPACING;
+            positions.push([0.0, y, 0.0]);
+            positions.push([(map_data.cols as f32) * Self::SPACING, y, 0.0]);
+            colors.push(Self::COLOR_VERTEX);
+            colors.push(Self::COLOR_VERTEX);
+        }
+
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+
+        command.spawn((
+            Mesh2d(meshes.add(mesh)),
+            MeshMaterial2d(materials.add(ColorMaterial::default())),
+            MapGrid,
+        ));
+    }
+
+    fn parse(
+        _: Trigger<ParseTilesEvent>,
+        mut command: Commands,
+        mut map_data: ResMut<MapData>,
+        asset: Res<Assets<LevelAsset>>,
+        level_static_resource: Res<LevelStaticResource>,
+        level_dynamic_resource: Res<LevelDynamicResource>,
+    ) {
+        for tile_data in map_data.data.values() {
+            command.entity(tile_data.id).despawn();
+        }
+        map_data.data.clear();
+        command.trigger(GridCreateEvent);
+
+        if map_data.cols == 0 || map_data.rows == 0 {
+            return;
+        }
+
+        let (limit_x, limit_y) = (
+            map_data.cols as f32 * Self::TILE_SIZE - Self::TILE_SIZE / 2.0,
+            map_data.rows as f32 * Self::TILE_SIZE - Self::TILE_SIZE / 2.0,
+        );
+
+        let level_asset = asset.get(&level_dynamic_resource.0).unwrap();
+        for descriptor in &level_asset.data {
+            if descriptor.tile_pos.0 > limit_x || descriptor.tile_pos.1 > limit_y {
+                continue;
+            }
+            let translation = Vec3::new(descriptor.tile_pos.0, descriptor.tile_pos.1, 0.0);
+            let id = match descriptor.tile_typ {
+                TileType::Pass => command
+                    .spawn(PassBox::new(
+                        translation,
+                        descriptor.rotation,
+                        &level_static_resource,
+                    ))
+                    .id(),
+                TileType::Wall => command
+                    .spawn(Floor::new(
+                        translation,
+                        descriptor.rotation,
+                        &level_static_resource,
+                    ))
+                    .id(),
+                TileType::Trap => command
+                    .spawn(HitBox::new(
+                        translation,
+                        descriptor.rotation,
+                        &level_static_resource,
+                    ))
+                    .id(),
+            };
+            map_data.data.insert(
+                translation.truncate().as_uvec2(),
+                TileData {
+                    id,
+                    typ: descriptor.tile_typ,
+                    rotation: descriptor.rotation,
+                },
+            );
+        }
     }
 
     //fix a bevy's bug
@@ -208,7 +221,8 @@ impl TilesPlugin {
     }
 
     fn align_and_offset(translation: Vec3) -> Vec3 {
-        ((translation.as_uvec3() / 32) * 32).as_vec3() + 16.0
+        ((translation.as_uvec3() / Self::TILE_SIZE as u32) * Self::TILE_SIZE as u32).as_vec3()
+            + Self::TILE_SIZE / 2.0
     }
 
     fn get_real_translation(
@@ -241,8 +255,8 @@ impl TilesPlugin {
         window: Single<&Window>,
         selected: Res<Selected>,
         mut map_data: ResMut<MapData>,
-        level_resource: Res<LevelResource>,
         mouse_buttons: Res<ButtonInput<MouseButton>>,
+        level_static_resource: Res<LevelStaticResource>,
         camera_transform: Single<&Transform, With<TilesMarker>>,
         camera_projection: Single<&Projection, With<TilesMarker>>,
     ) {
@@ -256,6 +270,19 @@ impl TilesPlugin {
         } else {
             return;
         };
+
+        if !Rect::from_corners(
+            Vec2::ZERO,
+            Vec2::new(
+                map_data.cols as f32 * Self::TILE_SIZE,
+                map_data.rows as f32 * Self::TILE_SIZE,
+            ),
+        )
+        .contains(real_translation.truncate())
+        {
+            return;
+        }
+
         let key = real_translation.truncate().as_uvec2();
 
         if let Some(tile_data) = map_data.data.get(&key) {
@@ -272,21 +299,21 @@ impl TilesPlugin {
                 .spawn(Floor::new(
                     real_translation,
                     selected.rotation,
-                    &level_resource,
+                    &level_static_resource,
                 ))
                 .id(),
             TileType::Pass => command
                 .spawn(PassBox::new(
                     real_translation,
                     selected.rotation,
-                    &level_resource,
+                    &level_static_resource,
                 ))
                 .id(),
             TileType::Trap => command
                 .spawn(HitBox::new(
                     real_translation,
                     selected.rotation,
-                    &level_resource,
+                    &level_static_resource,
                 ))
                 .id(),
         };
@@ -326,11 +353,14 @@ impl TilesPlugin {
 impl Plugin for TilesPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<GridCreateEvent>()
+            .add_event::<ParseTilesEvent>()
             .add_observer(Self::create_grid)
-            .add_systems(OnEnter(UIState::Running), Self::parse)
+            .add_observer(Self::parse)
+            .add_systems(OnEnter(AppState::Running), Self::init)
+            .add_systems(Update, Self::resize.run_if(in_state(AppState::Running)))
             .add_systems(
                 Update,
-                (Self::resize, Self::scale, Self::earse).run_if(in_state(UIState::Running)),
+                (Self::scale, Self::earse).run_if(in_state(UIState::Running)),
             )
             .add_systems(
                 Update,

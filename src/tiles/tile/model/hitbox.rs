@@ -8,7 +8,11 @@ pub struct HitBoxMarker;
 pub struct HitBox(Sprite, Transform, HitBoxMarker);
 impl Tile for HitBox {
     type Output = Self;
-    fn new(translation: Vec3, rotation: f32, level_resource: &Res<LevelResource>) -> Self::Output {
+    fn new(
+        translation: Vec3,
+        rotation: f32,
+        level_resource: &Res<LevelStaticResource>,
+    ) -> Self::Output {
         Self(
             Sprite {
                 image: level_resource.texture_handle.clone(),

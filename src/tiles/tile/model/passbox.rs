@@ -13,7 +13,11 @@ impl PassBox {
 }
 impl Tile for PassBox {
     type Output = Self;
-    fn new(translation: Vec3, rotation: f32, level_resource: &Res<LevelResource>) -> Self::Output {
+    fn new(
+        translation: Vec3,
+        rotation: f32,
+        level_resource: &Res<LevelStaticResource>,
+    ) -> Self::Output {
         Self(
             Aseprite::new(
                 Sprite {

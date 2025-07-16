@@ -1,4 +1,4 @@
-use bevy::{input::keyboard::KeyboardInput, prelude::*};
+use bevy::{ecs::system::IntoObserverSystem, input::keyboard::KeyboardInput, prelude::*};
 
 #[derive(Event)]
 pub struct EditFinished;
@@ -32,6 +32,60 @@ struct CurrentEditable;
 
 pub struct EditLinePlugin;
 impl EditLinePlugin {
+    pub fn spawn_edit<E, B, M, K>(
+        command: &mut ChildSpawnerCommands,
+        marker: K,
+        label_text: &str,
+        text_val: &str,
+        observer: impl IntoObserverSystem<E, B, M>,
+    ) where
+        E: Event,
+        B: Bundle,
+        K: Component,
+    {
+        command.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(33.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..Default::default()
+            },
+            children![(
+                Text::new(label_text),
+                TextFont {
+                    font_size: 16.0,
+                    ..Default::default()
+                }
+            )],
+        ));
+        let editable_text_id = command
+            .commands()
+            .spawn((
+                Text::new(text_val),
+                CursorPosition(text_val.len()),
+                EditableText,
+                marker,
+            ))
+            .id();
+        command
+            .spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(67.0),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..Default::default()
+                },
+                EditableTextEntity(editable_text_id),
+                BorderRadius::all(Val::Px(4.0)),
+                EditLine::DEFAULT_OUTLINE,
+                EditLine,
+            ))
+            .add_child(editable_text_id)
+            .observe(observer);
+    }
+
     fn handle_input(
         mut command: Commands,
         mut text_query: Query<&mut Text, With<EditableText>>,
@@ -109,6 +163,9 @@ impl EditLinePlugin {
                 command
                     .entity(*current_entity)
                     .insert(EditLine::DEFAULT_OUTLINE);
+                if *current_entity != entity {
+                    command.trigger_targets(EditFinished, *current_entity);
+                }
             }
             command.entity(entity).insert(CurrentEditable);
             command.entity(entity).insert(EditLine::SELECTED_OUTLINE);
